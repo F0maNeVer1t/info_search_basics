@@ -3,8 +3,9 @@ import re
 from bs4 import BeautifulSoup
 import pymorphy3
 
-OUTPUT_DIR = "pages"
+PAGES_DIR = "pages"
 
+# Морфологический анализатор (лемматизация)
 morph = pymorphy3.MorphAnalyzer()
 
 tokens_set = set()
@@ -20,16 +21,16 @@ def extract_from_html(html_content: str) -> str:
     for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
 
+    # Возвращаем весь текст страницы
     return soup.get_text(separator=" ")
 
 
-# ---------- ШАГ 1. Токенизация ----------
-
-for filename in os.listdir(OUTPUT_DIR):
+# Токенизация
+for filename in os.listdir(PAGES_DIR):
     if not filename.endswith(".html"):
         continue
 
-    path = os.path.join(OUTPUT_DIR, filename)
+    path = os.path.join(PAGES_DIR, filename)
 
     with open(path, "r", encoding="utf-8", errors="ignore") as f:
         html = f.read()
