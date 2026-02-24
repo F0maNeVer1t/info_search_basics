@@ -1,97 +1,62 @@
 import os
-import re
 import json
-from bs4 import BeautifulSoup
 import pymorphy3
 
-OUTPUT_DIR = "pages"
-
-# хранит инвертированный индекс
+LEMMAS_DIR = "lemmas"
 INDEX_FILE = "inverted_index.json"
 
-# Морфологический анализатор (лемматизация)
 morph = pymorphy3.MorphAnalyzer()
 
+OPERATORS = {"AND", "OR", "NOT"}
 
-def extract_text(html):
-    # Извлекает чистый текст из HTML.
-    soup = BeautifulSoup(html, "html.parser")
-
-    # Удаляем служебные теги
-    for tag in soup(["script", "style", "noscript"]):
-        tag.decompose()
-
-    # Возвращаем весь текст страницы
-    return soup.get_text(separator=" ")
+PRIORITY = {
+    "NOT": 3,
+    "AND": 2,
+    "OR": 1
+}
 
 
-# Регулярное выражение для выделения русских слов
-word_re = re.compile(r"[А-Яа-яЁё]+")
-
-
-def tokenize_and_lemmatize(text):
-    words = word_re.findall(text)
-
-    lemmas = set()
-
-    for w in words:
-        w = w.lower()
-
-        # Морфологический разбор слова
-        p = morph.parse(w)[0]
-
-        # Отбрасываем предлоги, союзы, частицы, междометия
-        if p.tag.POS in {"PREP", "CONJ", "PRCL", "INTJ"}:
-            continue
-
-        # Добавляем лемму
-        lemmas.add(p.normal_form)
-
-    return lemmas
-
-
-def build_index():
+def build_index_from_lemmas():
     """
-    Строит инвертированный индекс по HTML-файлам.
+    Строит инвертированный индекс по файлам *_lemmas.txt
+    Формат строки:
+    <lemma> <token1> <token2> ...
 
     Возвращает:
     inverted_index — словарь {лемма -> множество документов}
     all_docs — множество всех документов
     """
+
     inverted_index = {}
     all_docs = set()
 
-    for filename in os.listdir(OUTPUT_DIR):
-        if not filename.endswith(".html"):
+    for filename in os.listdir(LEMMAS_DIR):
+
+        if not filename.endswith("_lemmas.txt"):
             continue
 
         doc_id = filename
         all_docs.add(doc_id)
 
-        path = os.path.join(OUTPUT_DIR, filename)
+        path = os.path.join(LEMMAS_DIR, filename)
 
-        # Читаем HTML-файл
-        with open(path, "r", encoding="utf-8", errors="ignore") as f:
-            html = f.read()
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                parts = line.strip().split()
 
-        text = extract_text(html)
-        lemmas = tokenize_and_lemmatize(text)
+                if not parts:
+                    continue
 
-        # Заполняем инвертированный индекс
-        for lemma in lemmas:
-            inverted_index.setdefault(lemma, set()).add(doc_id)
+                lemma = parts[0]
+
+                inverted_index.setdefault(lemma, set()).add(doc_id)
 
     return inverted_index, all_docs
 
 
 def save_index(inverted_index, all_docs):
-    """
-    Сохраняет индекс и список документов в JSON-файл.
-    inverted_index — словарь {лемма -> set(doc_id)}
-    all_docs — множество документов
-    """
+
     data = {
-        # set преобразуем в list для JSON
         "index": {k: list(v) for k, v in inverted_index.items()},
         "all_docs": list(all_docs)
     }
@@ -101,72 +66,56 @@ def save_index(inverted_index, all_docs):
 
 
 def load_index():
-    """
-    Загружает инвертированный индекс из файла.
-    Возвращает inverted_index и all_docs.
-    """
+
     with open(INDEX_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    # list обратно преобразуем в set
     inverted_index = {k: set(v) for k, v in data["index"].items()}
     all_docs = set(data["all_docs"])
 
     return inverted_index, all_docs
 
 
-# Поддерживаемые булевы операторы
-OPERATORS = {"AND", "OR", "NOT"}
-
-# Приоритет операторов
-PRIORITY = {
-    "NOT": 3,
-    "AND": 2,
-    "OR": 1
-}
-
-
 def normalize_query(query):
-    """
-    Разбивает строку запроса на токены.
-    query — строка пользовательского запроса.
-    """
     query = query.replace("(", " ( ").replace(")", " ) ")
     return query.split()
 
 
 def to_rpn(tokens):
     """
-    Преобразует список токенов запроса
-    в обратную польскую нотацию (RPN).
-    tokens — список токенов запроса.
+    Преобразует список токенов запроса в обратную польскую нотацию (RPN).
+    RPN - форма записи выражений без скобок, в которой порядок вычислений задаётся положением операторов.
+    tokens — список терминов, операторов и скобок.
     """
+
     output = []
     stack = []
 
     for token in tokens:
+
         t = token.upper()
 
+        # обработка логических операторов
         if t in OPERATORS:
-            # Обработка операторов с учётом приоритета
             while stack and stack[-1] in OPERATORS and PRIORITY[stack[-1]] >= PRIORITY[t]:
                 output.append(stack.pop())
             stack.append(t)
 
+        # открывающая скобка
         elif token == "(":
             stack.append(token)
 
+        # закрывающая скобка
         elif token == ")":
-            # Выгружаем операторы до открывающей скобки
             while stack and stack[-1] != "(":
                 output.append(stack.pop())
             stack.pop()
 
+        # термин запроса
         else:
-            # Термин
             output.append(token)
 
-    # Выгружаем оставшиеся операторы
+    # перенос оставшихся операторов
     while stack:
         output.append(stack.pop())
 
@@ -175,9 +124,13 @@ def to_rpn(tokens):
 
 def term_to_docs(term):
     """
-    Преобразует термин запроса в множество документов.
-    term — слово из запроса.
+    Приводит термин запроса к лемме
+    и возвращает множество документов,
+    в которых эта лемма встречается.
+
+    term - слово из запроса
     """
+
     term = term.lower()
     p = morph.parse(term)[0]
     lemma = p.normal_form
@@ -187,12 +140,13 @@ def term_to_docs(term):
 
 def eval_rpn(rpn):
     """
-    Вычисляет булев запрос в RPN-форме.
-    rpn — список токенов в обратной польской нотации.
+    Вычисление булевого выражения в RPN
     """
+
     stack = []
 
     for token in rpn:
+
         t = token.upper()
 
         if t == "AND":
@@ -210,31 +164,29 @@ def eval_rpn(rpn):
             stack.append(all_docs - a)
 
         else:
-            # Термин
             stack.append(term_to_docs(token))
 
     return stack.pop() if stack else set()
 
 
-# Если файла индекса нет — строим его
+# запуск
 if not os.path.exists(INDEX_FILE):
-    print("Файл индекса не найден. Строим индекс...")
+    print("Файл индекса не найден. Строим индекс по lemmas/...")
 
-    inverted_index, all_docs = build_index()
+    inverted_index, all_docs = build_index_from_lemmas()
     save_index(inverted_index, all_docs)
 
     print("Индекс построен и сохранён.")
 
-# Иначе загружаем готовый индекс
 else:
-    print("Загружаем индекс из файла...")
+    print("Загружаем индекс...")
     inverted_index, all_docs = load_index()
     print("Индекс загружен.")
 
 
-# Основной цикл ввода запросов
 while True:
-    query = input("\nВведите запрос (пустая строка — выход): ")
+
+    query = input("\nВведите запрос (для выхода нажмите enter дважды): ")
 
     if not query.strip():
         break
