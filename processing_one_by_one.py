@@ -10,6 +10,7 @@ LEMMAS_DIR = "lemmas"
 os.makedirs(TOKENS_DIR, exist_ok=True)
 os.makedirs(LEMMAS_DIR, exist_ok=True)
 
+# Морфологический анализатор (лемматизация)
 morph = pymorphy3.MorphAnalyzer()
 
 # разрешаем только русские слова
@@ -23,6 +24,7 @@ def extract_from_html(html_content: str) -> str:
     for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
 
+    # Возвращаем весь текст страницы
     return soup.get_text(separator=" ")
 
 
