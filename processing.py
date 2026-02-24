@@ -5,6 +5,7 @@ import pymorphy3
 
 OUTPUT_DIR = "pages"
 
+# Морфологический анализатор (лемматизация)
 morph = pymorphy3.MorphAnalyzer()
 
 tokens_set = set()
@@ -20,11 +21,11 @@ def extract_from_html(html_content: str) -> str:
     for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
 
+    # Возвращаем весь текст страницы
     return soup.get_text(separator=" ")
 
 
-# ---------- ШАГ 1. Токенизация ----------
-
+# Токенизация
 for filename in os.listdir(OUTPUT_DIR):
     if not filename.endswith(".html"):
         continue
