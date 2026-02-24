@@ -1,3 +1,6 @@
+"""
+СТАРАЯ РЕАЛИЗАЦИЯ ЗАДАНИЯ, ГДЕ ОБРАБАТЫВАЮТСЯ ТОКЕНЫ, А ПОТОМ ЛЕММАТИЗИРОВАННЫЕ ТОКЕНЫ ДЛЯ ВСЕХ СТРАНИЦ В ОДИН ФАЙЛ
+"""
 import os
 import re
 from bs4 import BeautifulSoup
@@ -48,12 +51,12 @@ for filename in os.listdir(PAGES_DIR):
 
         parse = morph.parse(w)[0]
 
-        '''
+        """
         PREP — предлог
         CONJ — союз
         PRCL — частица
         INTJ — междометие
-        '''
+        """
         if parse.tag.POS in {"PREP", "CONJ", "PRCL", "INTJ"}:
             continue
 
