@@ -1,0 +1,104 @@
+body{
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(120deg,#eef2f7,#dfe9f3);
+}
+
+.page{
+    width:800px;
+    margin:100px auto;
+    text-align:center;
+}
+
+.logo{
+    font-size:42px;
+    margin-bottom:40px;
+    color:#333;
+}
+
+.search-container{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+}
+
+input{
+    width:450px;
+    padding:12px 15px;
+    font-size:16px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    outline:none;
+    transition:0.2s;
+}
+
+input:focus{
+    border-color:#4a7dff;
+    box-shadow:0 0 6px rgba(74,125,255,0.4);
+}
+
+button{
+    padding:12px 20px;
+    font-size:16px;
+    border:none;
+    border-radius:8px;
+    background:#4a7dff;
+    color:white;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+button:hover{
+    background:#2e5fe3;
+}
+
+.results{
+    margin-top:40px;
+    text-align:left;
+}
+
+.result{
+    background:white;
+    padding:18px;
+    margin-bottom:15px;
+    border-radius:8px;
+    box-shadow:0 3px 10px rgba(0,0,0,0.08);
+    transition:0.2s;
+}
+
+.result:hover{
+    transform:translateY(-2px);
+    box-shadow:0 6px 16px rgba(0,0,0,0.12);
+}
+
+.doc{
+    font-size:18px;
+    color:#2e5fe3;
+}
+
+.score{
+    color:#555;
+    margin-top:5px;
+    font-size:14px;
+}
+
+a{
+    text-decoration:none;
+    color:#2e5fe3;
+}
+
+a:hover{
+    text-decoration:underline;
+}
+
+mark{
+    background:yellow;
+    padding:2px;
+}
+
+.snippet{
+    margin-top:8px;
+    color:#444;
+    font-size:14px;
+    line-height:1.4;
+}
